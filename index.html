@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Car Claim Demo</title>
+  <!-- silence the favicon 404 -->
+  <link rel="icon" href="data:," />
+</head>
+<body>
+  <h1>Car Claim #0</h1>
+  <pre id="info">Loading…</pre>
+  <button id="approve">Approve & Payout</button>
+  <button id="deny">Deny</button>
+
+  <!-- 1) Load ethers UMD (must be v5 for this snippet) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
+  <!-- 2) Then your app code -->
+  <script>
+    const ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+    const ABI = [
+      "function getClaim(uint256) view returns (tuple(string,string,string,address,uint256,uint8,bool,uint8))",
+      "function updateStatus(uint256,uint8)",
+      "function payoutClaim(uint256)"
+    ];
+
+    async function main() {
+      // verify ethers is loaded
+      if (typeof ethers === "undefined") {
+        throw new Error("Ethers.js not found – check your <script> order/URL");
+      }
+
+      const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
+      const signer   = provider.getSigner(0);
+      const c        = new ethers.Contract(ADDRESS, ABI, signer);
+
+      const claim = await c.getClaim(0);
+      document.getElementById("info").innerText =
+        `Name: ${claim[0]}\nPolicy: ${claim[1]}\nEvidence: ${claim[2]}\n` +
+        `Payout: ${ethers.formatEther(claim[4])} ETH\nStatus: ${["None","Submitted","OracleChecked","Approved","Denied"][claim[7]]}`;
+
+      document.getElementById("approve").onclick = async () => {
+        await c.updateStatus(0, 3);
+        await c.payoutClaim(0);
+        alert("✅ Approved & Paid!");
+      };
+      document.getElementById("deny").onclick = async () => {
+        await c.updateStatus(0, 4);
+        alert("❌ Denied");
+      };
+    }
+
+    main().catch(console.error);
+  </script>
+</body>
+</html>
